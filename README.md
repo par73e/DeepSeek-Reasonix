@@ -1,0 +1,1 @@
+Real WorkbenchPanel/CSS component harness, synthetic tabs and close refusal. Before is the rebased feature before this UI correction; after moves the failure directly below the tab strip, retaining role=alert, using existing error tokens and 12px text. Light/dark at 1100px/390px, no horizontal overflow. Not a live kernel/Electron/CDP check. Base ccb89c69c.
