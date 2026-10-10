@@ -1,0 +1,3 @@
+# PR #12067 UI evidence
+
+Before uses studio 9a6c6828e (the PR base); after uses PR head f5dc84673. Real WorkbenchPanel components and CSS with two synthetic agent-owned tabs; port.browserClose deliberately rejects with a synthetic connection-closed error. Before has no custom tab menu and merely dismisses the tab without invoking close; after shows the close menu and retains the tab with a failure alert. The failure labelled before image records the equivalent close attempt, not a real CDP failure. This is a component harness in browser mode, not a live kernel/Electron/CDP session. Both themes at 1100px and 390px. No horizontal overflow.
