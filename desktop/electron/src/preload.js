@@ -81,10 +81,8 @@ contextBridge.exposeInMainWorld("reasonixHost", {
     ipcRenderer.invoke("browser:login-answer", String(id), String(username || ""), String(password || "")),
 });
 
-// localStorage is keyed by origin and the kernel's port is new each launch, so
-// the page's own preferences are restored here, before any page script reads
-// them, and handed back as they change. A key the page already holds wins: it
-// is at least as new as the copy on disk.
+// A loopback port can be reused after another launch saved newer preferences.
+// Restore the shared disk copy before page scripts read this origin's storage.
 const PREFIX = "rx-";
 function ownPrefs() {
   const out = {};
@@ -97,7 +95,7 @@ function ownPrefs() {
 try {
   const saved = ipcRenderer.sendSync("prefs:load") || {};
   for (const [key, value] of Object.entries(saved)) {
-    if (key.startsWith(PREFIX) && localStorage.getItem(key) === null) localStorage.setItem(key, String(value));
+    if (key.startsWith(PREFIX)) localStorage.setItem(key, String(value));
   }
 } catch {
   // Storage unavailable: the page runs on its defaults, as it always has.
