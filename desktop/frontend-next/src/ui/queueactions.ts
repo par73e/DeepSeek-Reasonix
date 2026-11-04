@@ -18,7 +18,8 @@ interface Inputs {
  *  of the kernel and the answer is read back whole, which is also what puts
  *  another window's lines in front of this one. */
 export function useQueueActions({ port, dispatch, fail, moved, sessionState = "settled", sessionPath }: Inputs) {
-  const [queue, setQueue] = useState<QueueSnapshot | null>(null);
+  const [read, setRead] = useState<{ port: AgentPort; sessionPath?: string; queue: QueueSnapshot } | null>(null);
+  const queue = read?.port === port && read.sessionPath === sessionPath ? read.queue : null;
   const dispatchRef = useRef(dispatch);
   dispatchRef.current = dispatch;
   // The last line taken back, numbered so the same text twice is two requests.
@@ -31,12 +32,21 @@ export function useQueueActions({ port, dispatch, fail, moved, sessionState = "s
   useEffect(() => {
     if (sessionState === "pending" && !moved) return;
     let current = true;
-    port.queue().then((q) => {
-      if (!current) return;
-      setQueue(q);
-      if (!q.paused) dispatchRef.current({ kind: "__queue_resumed" } as never);
-    }).catch(() => current && setQueue(null));
-    return () => { current = false; };
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let gap = 1000;
+    const refresh = () => {
+      void port.queue().then((q) => {
+        if (!current) return;
+        setRead({ port, sessionPath, queue: q });
+        if (!q.paused) dispatchRef.current({ kind: "__queue_resumed" } as never);
+      }).catch(() => {
+        if (!current) return;
+        timer = setTimeout(refresh, gap);
+        gap = Math.min(15000, gap * 2);
+      });
+    };
+    refresh();
+    return () => { current = false; clearTimeout(timer); };
   }, [port, moved, sessionState, sessionPath]);
   const taking = useRef(new Set<string>());
 
