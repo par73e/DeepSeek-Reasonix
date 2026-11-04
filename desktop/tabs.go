@@ -4464,6 +4464,9 @@ func (a *App) maybeAutoTitleTopic(tab *WorkspaceTab) bool {
 	if tab == nil {
 		return false
 	}
+	if a.tabRuntimeSnapshot(tab).sessionID != "" {
+		return a.refreshCanonicalTabTitle(tab)
+	}
 	a.lifecycleCheckpoint("before-autosave-topic-title")
 	a.topicTitleMutationMu.Lock()
 	defer a.topicTitleMutationMu.Unlock()

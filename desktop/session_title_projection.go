@@ -47,6 +47,33 @@ func (a *App) canonicalTabTitleWithPresentation(ctx context.Context, presentatio
 	return sessionDisplayTitle(info, presentation)
 }
 
+func (a *App) refreshCanonicalTabTitle(tab *WorkspaceTab) bool {
+	a.mu.RLock()
+	id, ctrl, generation := tab.SessionID, tab.Ctrl, tab.SessionGeneration
+	previous, previousSource := tab.TopicTitle, tab.topicTitleSource
+	a.mu.RUnlock()
+	ref := session.SessionRef{HostID: localDesktopHostID, SessionID: id}
+	info, err := a.desktopSessionService("").Query().Stat(a.bootContext(), ref)
+	if err != nil {
+		return false
+	}
+	state, err := a.workspaceRegistry().Load(a.bootContext())
+	if err != nil {
+		return false
+	}
+	title, source := sessionDisplayTitle(info, state.Presentation[id])
+	a.mu.Lock()
+	if tab.removed || tab.SessionID != id || tab.Ctrl != ctrl || tab.SessionGeneration != generation ||
+		tab.TopicTitle != previous || tab.topicTitleSource != previousSource || (title == previous && source == previousSource) {
+		a.mu.Unlock()
+		return false
+	}
+	tab.TopicTitle, tab.topicTitleSource = title, source
+	a.mu.Unlock()
+	a.emitProjectTreeMetadataChanged()
+	return true
+}
+
 // publishCanonicalSessionTitle is the single exit of every canonical rename.
 // It mirrors the committed log title into each local reader that still
 // caches a name: the presentation row (cold binds, trash rows, fork labels),
